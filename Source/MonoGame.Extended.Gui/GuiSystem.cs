@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Linq;
+﻿using System.Linq;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended.BitmapFonts;
 using MonoGame.Extended.Gui.Controls;
@@ -16,35 +15,24 @@ namespace MonoGame.Extended.Gui
 
     public class GuiSystem : IGuiContext, IRectangular
     {
-        private readonly ViewportAdapter _viewportAdapter;
+	    private readonly ViewportAdapter _viewportAdapter;
         private readonly IGuiRenderer _renderer;
-        private readonly MouseListener _mouseListener;
-        private readonly TouchListener _touchListener;
-        private readonly KeyboardListener _keyboardListener;
 
         private GuiControl _preFocusedControl;
         private GuiControl _focusedControl;
         private GuiControl _hoveredControl;
+	    private MouseListener _mouseListener;
+	    private TouchListener _touchListener;
+	    private KeyboardListener _keyboardListener;
 
-        public GuiSystem(ViewportAdapter viewportAdapter, IGuiRenderer renderer)
+	    public GuiSystem(ViewportAdapter viewportAdapter, IGuiRenderer renderer)
         {
             _viewportAdapter = viewportAdapter;
             _renderer = renderer;
 
-            _mouseListener = new MouseListener(viewportAdapter);
-            _mouseListener.MouseMoved += (s, e) => OnPointerMoved(GuiPointerEventArgs.FromMouseArgs(e));
-            _mouseListener.MouseDown += (s, e) => OnPointerDown(GuiPointerEventArgs.FromMouseArgs(e));
-            _mouseListener.MouseUp += (s, e) => OnPointerUp(GuiPointerEventArgs.FromMouseArgs(e));
-            _mouseListener.MouseWheelMoved += (s, e) => _focusedControl?.OnScrolled(e.ScrollWheelDelta);
-
-            _touchListener = new TouchListener(viewportAdapter);
-            _touchListener.TouchStarted += (s, e) => OnPointerDown(GuiPointerEventArgs.FromTouchArgs(e));
-            _touchListener.TouchMoved += (s, e) => OnPointerMoved(GuiPointerEventArgs.FromTouchArgs(e));
-            _touchListener.TouchEnded += (s, e) => OnPointerUp(GuiPointerEventArgs.FromTouchArgs(e));
-
-            _keyboardListener = new KeyboardListener();
-            _keyboardListener.KeyTyped += (sender, args) => _focusedControl?.OnKeyTyped(this, args);
-            _keyboardListener.KeyPressed += (sender, args) => _focusedControl?.OnKeyPressed(this, args);
+            MouseListener = new MouseListener(viewportAdapter);
+            TouchListener = new TouchListener(viewportAdapter);
+            KeyboardListener = new KeyboardListener();
 
             Screens = new GuiScreenCollection(this)
             {
@@ -62,11 +50,38 @@ namespace MonoGame.Extended.Gui
 
         public BitmapFont DefaultFont => ActiveScreen?.Skin?.DefaultFont;
 
-        public void Update(GameTime gameTime)
+		public MouseListener MouseListener
+	    {
+		    get { return _mouseListener; }
+			set {
+				_mouseListener = value; 
+				BindMouseListener(_mouseListener);
+			}
+	    }
+
+	    public TouchListener TouchListener
+	    {
+		    get { return _touchListener; }
+		    set {
+			    _touchListener = value;
+			    BindTouchListener(_touchListener);
+		    }
+	    }
+
+	    public KeyboardListener KeyboardListener
+	    {
+		    get { return _keyboardListener; }
+		    set {
+			    _keyboardListener = value;
+			    BindKeyboardListener(_keyboardListener);
+		    }
+	    }
+
+	    public void Update(GameTime gameTime)
         {
-            _touchListener.Update(gameTime);
-            _mouseListener.Update(gameTime);
-            _keyboardListener.Update(gameTime);
+            TouchListener.Update(gameTime);
+            MouseListener.Update(gameTime);
+            KeyboardListener.Update(gameTime);
         }
 
         public void Draw(GameTime gameTime)
@@ -91,6 +106,27 @@ namespace MonoGame.Extended.Gui
 
             _renderer.End();
         }
+
+	    private void BindMouseListener(MouseListener mouseListener)
+	    {
+		    mouseListener.MouseMoved += (s, e) => OnPointerMoved(GuiPointerEventArgs.FromMouseArgs(e));
+            mouseListener.MouseDown += (s, e) => OnPointerDown(GuiPointerEventArgs.FromMouseArgs(e));
+            mouseListener.MouseUp += (s, e) => OnPointerUp(GuiPointerEventArgs.FromMouseArgs(e));
+            mouseListener.MouseWheelMoved += (s, e) => _focusedControl?.OnScrolled(e.ScrollWheelDelta);
+	    }
+
+	    private void BindTouchListener(TouchListener touchListener)
+	    {
+            touchListener.TouchStarted += (s, e) => OnPointerDown(GuiPointerEventArgs.FromTouchArgs(e));
+            touchListener.TouchMoved += (s, e) => OnPointerMoved(GuiPointerEventArgs.FromTouchArgs(e));
+            touchListener.TouchEnded += (s, e) => OnPointerUp(GuiPointerEventArgs.FromTouchArgs(e));
+	    }
+
+		private void BindKeyboardListener(KeyboardListener keyboardListener)
+	    {
+            keyboardListener.KeyTyped += (sender, args) => _focusedControl?.OnKeyTyped(this, args);
+            keyboardListener.KeyPressed += (sender, args) => _focusedControl?.OnKeyPressed(this, args);
+	    }
 
         private void DrawWindows(GuiWindowCollection windows, float deltaSeconds)
         {
